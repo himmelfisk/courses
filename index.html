@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Norway Disc Golf Explorer</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin="" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <h1>🥏 Norway Disc Golf</h1>
+      <p class="subtitle">Explore all disc golf courses in Norway</p>
+    </div>
+
+    <!-- Tab navigation -->
+    <div class="tabs">
+      <button class="tab active" data-tab="explore">Explore</button>
+      <button class="tab" data-tab="route">Route Planner</button>
+    </div>
+
+    <!-- Explore Tab -->
+    <div id="tab-explore" class="tab-content active">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Search courses..." />
+      </div>
+
+      <div class="filters">
+        <div class="filter-group">
+          <label>Min Rating</label>
+          <select id="filter-rating">
+            <option value="0">All ratings</option>
+            <option value="3.5">3.5+ ⭐</option>
+            <option value="4.0">4.0+ ⭐</option>
+            <option value="4.5">4.5+ ⭐</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Difficulty</label>
+          <select id="filter-difficulty">
+            <option value="">All</option>
+            <option value="Easy">Easy</option>
+            <option value="Moderate">Moderate</option>
+            <option value="Hard">Hard</option>
+            <option value="Very Hard">Very Hard</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Min Holes</label>
+          <select id="filter-holes">
+            <option value="0">All</option>
+            <option value="9">9+</option>
+            <option value="18">18+</option>
+            <option value="27">27+</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="course-stats">
+        <span id="course-count">0</span> courses shown
+      </div>
+
+      <div id="course-list" class="course-list"></div>
+    </div>
+
+    <!-- Route Planner Tab -->
+    <div id="tab-route" class="tab-content">
+      <div class="route-form">
+        <div class="form-group">
+          <label for="route-from">From</label>
+          <input type="text" id="route-from" placeholder="e.g. Ålesund" />
+        </div>
+        <div class="form-group">
+          <label for="route-to">To</label>
+          <input type="text" id="route-to" placeholder="e.g. Oslo" />
+        </div>
+        <div class="form-group">
+          <label for="route-distance">Max distance from route</label>
+          <select id="route-distance">
+            <option value="5">5 km</option>
+            <option value="10">10 km</option>
+            <option value="20" selected>20 km</option>
+            <option value="30">30 km</option>
+            <option value="50">50 km</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="detour-distance">Max detour for great courses</label>
+          <select id="detour-distance">
+            <option value="20">20 km</option>
+            <option value="30">30 km</option>
+            <option value="50" selected>50 km</option>
+            <option value="75">75 km</option>
+            <option value="100">100 km</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="detour-min-rating">Min rating for detour suggestion</label>
+          <select id="detour-min-rating">
+            <option value="4.0">4.0+ ⭐</option>
+            <option value="4.2" selected>4.2+ ⭐</option>
+            <option value="4.5">4.5+ ⭐</option>
+          </select>
+        </div>
+        <button id="plan-route" class="btn-primary">Plan Route</button>
+        <button id="clear-route" class="btn-secondary" style="display:none;">Clear Route</button>
+      </div>
+
+      <div id="route-results" class="route-results" style="display:none;">
+        <div id="route-info" class="route-info"></div>
+        <h3>📍 Courses Along Route</h3>
+        <div id="route-courses" class="course-list"></div>
+        <div id="detour-section" style="display:none;">
+          <h3>🔄 Suggested Detours</h3>
+          <p class="detour-hint">These highly-rated courses are worth a small detour!</p>
+          <div id="detour-courses" class="course-list"></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Map container -->
+  <div id="map"></div>
+
+  <!-- Loading overlay -->
+  <div id="loading" class="loading" style="display:none;">
+    <div class="spinner"></div>
+    <p>Planning your route...</p>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""></script>
+
+  <!-- App JS -->
+  <script src="js/courses.js"></script>
+  <script src="js/routing.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
