@@ -23,8 +23,9 @@ const Routing = (() => {
       addressdetails: "1"
     });
 
+    const lang = typeof I18n !== "undefined" ? I18n.getLang() : "en";
     const response = await fetch(`${NOMINATIM_BASE}/search?${params}`, {
-      headers: { "Accept-Language": "en" }
+      headers: { "Accept-Language": lang }
     });
 
     if (!response.ok) {
@@ -61,8 +62,9 @@ const Routing = (() => {
       addressdetails: "1"
     });
 
+    const lang = typeof I18n !== "undefined" ? I18n.getLang() : "en";
     const response = await fetch(`${NOMINATIM_BASE}/search?${params}`, {
-      headers: { "Accept-Language": "en" }
+      headers: { "Accept-Language": lang }
     });
 
     if (!response.ok) return [];
@@ -175,6 +177,7 @@ const Routing = (() => {
   function closestRoutePointIndex(point, routeCoords) {
     let minDist = Infinity;
     let bestIdx = 0;
+    // Sample ~500 points for a fast coarse pass over potentially thousands of route coords
     const step = Math.max(1, Math.floor(routeCoords.length / 500));
 
     // Coarse pass
