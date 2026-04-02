@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="no">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Norway Disc Golf Explorer</title>
+  <title>🥏 Frisbeegolf i Norge</title>
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -20,49 +20,56 @@
 </head>
 <body>
 
+  <!-- Mobile sidebar toggle -->
+  <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+
   <!-- Sidebar -->
   <aside id="sidebar" class="sidebar">
+    <div class="sidebar-drag-handle"></div>
     <div class="sidebar-header">
-      <h1>🥏 Norway Disc Golf</h1>
-      <p class="subtitle">Explore all disc golf courses in Norway</p>
+      <div class="sidebar-header-row">
+        <h1 id="app-title">🥏 Frisbeegolf i Norge</h1>
+        <button id="lang-toggle" class="lang-toggle" aria-label="Switch language">EN</button>
+      </div>
+      <p id="app-subtitle" class="subtitle">Utforsk alle frisbeegolfbaner i Norge</p>
     </div>
 
     <!-- Tab navigation -->
     <div class="tabs">
-      <button class="tab active" data-tab="explore">Explore</button>
-      <button class="tab" data-tab="route">Route Planner</button>
+      <button class="tab active" data-tab="explore" id="tab-btn-explore">Utforsk</button>
+      <button class="tab" data-tab="route" id="tab-btn-route">Ruteplanlegger</button>
     </div>
 
     <!-- Explore Tab -->
     <div id="tab-explore" class="tab-content active">
       <div class="search-box">
-        <input type="text" id="search-input" placeholder="Search courses..." />
+        <input type="text" id="search-input" placeholder="Søk etter baner..." />
       </div>
 
       <div class="filters">
         <div class="filter-group">
-          <label>Min Rating</label>
+          <label id="label-rating">Min vurdering</label>
           <select id="filter-rating">
-            <option value="0">All ratings</option>
+            <option value="0" id="opt-all-ratings">Alle vurderinger</option>
             <option value="3.5">3.5+ ⭐</option>
             <option value="4.0">4.0+ ⭐</option>
             <option value="4.5">4.5+ ⭐</option>
           </select>
         </div>
         <div class="filter-group">
-          <label>Difficulty</label>
+          <label id="label-difficulty">Vanskelighetsgrad</label>
           <select id="filter-difficulty">
-            <option value="">All</option>
-            <option value="Easy">Easy</option>
-            <option value="Moderate">Moderate</option>
-            <option value="Hard">Hard</option>
-            <option value="Very Hard">Very Hard</option>
+            <option value="" id="opt-diff-all">Alle</option>
+            <option value="Easy" id="opt-diff-easy">Lett</option>
+            <option value="Moderate" id="opt-diff-moderate">Moderat</option>
+            <option value="Hard" id="opt-diff-hard">Vanskelig</option>
+            <option value="Very Hard" id="opt-diff-veryhard">Veldig vanskelig</option>
           </select>
         </div>
         <div class="filter-group">
-          <label>Min Holes</label>
+          <label id="label-holes">Min hull</label>
           <select id="filter-holes">
-            <option value="0">All</option>
+            <option value="0" id="opt-holes-all">Alle</option>
             <option value="9">9+</option>
             <option value="18">18+</option>
             <option value="27">27+</option>
@@ -71,7 +78,7 @@
       </div>
 
       <div class="course-stats">
-        <span id="course-count">0</span> courses shown
+        <span id="course-count">0</span> <span id="courses-shown-label">baner vist</span>
       </div>
 
       <div id="course-list" class="course-list"></div>
@@ -80,16 +87,18 @@
     <!-- Route Planner Tab -->
     <div id="tab-route" class="tab-content">
       <div class="route-form">
-        <div class="form-group">
-          <label for="route-from">From</label>
-          <input type="text" id="route-from" placeholder="e.g. Ålesund" />
+        <div class="form-group form-group-autocomplete">
+          <label for="route-from" id="label-from">Fra</label>
+          <input type="text" id="route-from" placeholder="f.eks. Ålesund" autocomplete="off" />
+          <div id="autocomplete-from" class="autocomplete-results"></div>
+        </div>
+        <div class="form-group form-group-autocomplete">
+          <label for="route-to" id="label-to">Til</label>
+          <input type="text" id="route-to" placeholder="f.eks. Oslo" autocomplete="off" />
+          <div id="autocomplete-to" class="autocomplete-results"></div>
         </div>
         <div class="form-group">
-          <label for="route-to">To</label>
-          <input type="text" id="route-to" placeholder="e.g. Oslo" />
-        </div>
-        <div class="form-group">
-          <label for="route-distance">Max distance from route</label>
+          <label for="route-distance" id="label-max-dist">Maks avstand fra rute</label>
           <select id="route-distance">
             <option value="5">5 km</option>
             <option value="10">10 km</option>
@@ -99,7 +108,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label for="detour-distance">Max detour for great courses</label>
+          <label for="detour-distance" id="label-max-detour">Maks omvei for gode baner</label>
           <select id="detour-distance">
             <option value="20">20 km</option>
             <option value="30">30 km</option>
@@ -109,24 +118,24 @@
           </select>
         </div>
         <div class="form-group">
-          <label for="detour-min-rating">Min rating for detour suggestion</label>
+          <label for="detour-min-rating" id="label-min-rating-detour">Min vurdering for omveiforslag</label>
           <select id="detour-min-rating">
             <option value="4.0">4.0+ ⭐</option>
             <option value="4.2" selected>4.2+ ⭐</option>
             <option value="4.5">4.5+ ⭐</option>
           </select>
         </div>
-        <button id="plan-route" class="btn-primary">Plan Route</button>
-        <button id="clear-route" class="btn-secondary" style="display:none;">Clear Route</button>
+        <button id="plan-route" class="btn-primary">Planlegg rute</button>
+        <button id="clear-route" class="btn-secondary" style="display:none;">Fjern rute</button>
       </div>
 
       <div id="route-results" class="route-results" style="display:none;">
         <div id="route-info" class="route-info"></div>
-        <h3>📍 Courses Along Route</h3>
+        <h3 id="heading-courses-along">📍 Baner langs ruten</h3>
         <div id="route-courses" class="course-list"></div>
         <div id="detour-section" style="display:none;">
-          <h3>🔄 Suggested Detours</h3>
-          <p class="detour-hint">These highly-rated courses are worth a small detour!</p>
+          <h3 id="heading-detours">🔄 Foreslåtte omveier</h3>
+          <p id="detour-hint-text" class="detour-hint">Disse høyt vurderte banene er verdt en liten omvei!</p>
           <div id="detour-courses" class="course-list"></div>
         </div>
       </div>
@@ -139,7 +148,7 @@
   <!-- Loading overlay -->
   <div id="loading" class="loading" style="display:none;">
     <div class="spinner"></div>
-    <p>Planning your route...</p>
+    <p id="loading-text">Planlegger ruten din...</p>
   </div>
 
   <!-- Leaflet JS -->
@@ -149,6 +158,7 @@
 
   <!-- App JS -->
   <script src="js/courses.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/routing.js"></script>
   <script src="js/app.js"></script>
 </body>
