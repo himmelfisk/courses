@@ -303,8 +303,8 @@
     const minHoles = parseInt(document.getElementById("filter-holes").value);
 
     return allCourses.filter(c => {
-      if (search && !c.name.toLowerCase().includes(search) &&
-          !c.city.toLowerCase().includes(search) &&
+      if (search && !(c.name && c.name.toLowerCase().includes(search)) &&
+          !(c.city && c.city.toLowerCase().includes(search)) &&
           !(c.region && c.region.toLowerCase().includes(search))) return false;
       if (c.rating < minRating) return false;
       if (difficulty && c.difficulty !== difficulty) return false;

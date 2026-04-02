@@ -61,8 +61,8 @@ def parse_course(element):
 
     return {
         "name": name or "Unnamed course",
-        "lat": round(lat, 4),
-        "lng": round(lon, 4),
+        "lat": round(lat, 6),
+        "lng": round(lon, 6),
         "city": tags.get("addr:city", tags.get("addr:municipality", "")),
         "region": "",
         "holes": holes,
