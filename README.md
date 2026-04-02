@@ -4,6 +4,8 @@ An interactive web application that shows all disc golf courses in Norway on a m
 
 ![Map Overview](https://img.shields.io/badge/Courses-96-green) ![License](https://img.shields.io/badge/license-MIT-blue)
 
+🌐 **Live site:** [https://himmelfisk.github.io/courses/](https://himmelfisk.github.io/courses/)
+
 ## Features
 
 - **Interactive Map** — Browse 96 disc golf courses across Norway on an OpenStreetMap-powered map
