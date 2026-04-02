@@ -42,6 +42,7 @@ const I18n = (() => {
       reviews: "anmeldelser",
       holes: "hull",
       viewUdisc: "Se på UDisc →",
+      visitWebsite: "Besøk nettside →",
       detour: "Omvei",
       fromRoute: "Fra rute",
       distance: "Avstand",
@@ -50,6 +51,8 @@ const I18n = (() => {
       detourSuggestions: "omveiforslag",
       start: "Start",
       end: "Slutt",
+      unknownCity: "Ukjent sted",
+      osmSource: "📡 Fra OpenStreetMap",
       difficultyMap: {
         "Easy": "Lett",
         "Moderate": "Moderat",
@@ -93,6 +96,7 @@ const I18n = (() => {
       reviews: "reviews",
       holes: "holes",
       viewUdisc: "View on UDisc →",
+      visitWebsite: "Visit website →",
       detour: "Detour",
       fromRoute: "From route",
       distance: "Distance",
@@ -101,6 +105,8 @@ const I18n = (() => {
       detourSuggestions: "detour suggestions",
       start: "Start",
       end: "End",
+      unknownCity: "Unknown location",
+      osmSource: "📡 From OpenStreetMap",
       difficultyMap: {
         "Easy": "Easy",
         "Moderate": "Moderate",

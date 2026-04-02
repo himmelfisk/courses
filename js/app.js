@@ -13,7 +13,7 @@
   });
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Disc golf data from community sources',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | Course data from community sources &amp; <a href="https://wiki.openstreetmap.org/wiki/Tag:leisure%3Ddisc_golf_course">OSM</a>',
     maxZoom: 18
   }).addTo(map);
 
@@ -23,6 +23,7 @@
   let routeLayer = null;
   let routeMarkersLayer = null;
   let currentRoute = null;
+  let allCourses = [...COURSES]; // Start with curated courses, extended by OSM data
 
   // Stored coordinates from autocomplete selections
   let storedFromCoords = null;
@@ -177,17 +178,34 @@
 
   // ---- Create popup content ----
   function createPopup(course) {
+    const isOsm = course.source === "osm";
     let html = `
       <div class="popup-title">${escapeHtml(course.name)}</div>
       <div class="popup-meta">
-        📍 ${escapeHtml(course.city)}, ${escapeHtml(course.region)}<br>
-        ⭐ ${course.rating}/5 (${course.reviews} ${t("reviews")})<br>
-        🕳️ ${course.holes} ${t("holes")} &nbsp; ${getDifficultyBadge(course.difficulty)}
-      </div>
-      <div class="popup-description">${escapeHtml(course.description)}</div>
+        📍 ${escapeHtml(course.city || t("unknownCity"))}${course.region ? ", " + escapeHtml(course.region) : ""}<br>
     `;
+    if (!isOsm) {
+      html += `⭐ ${course.rating}/5 (${course.reviews} ${t("reviews")})<br>`;
+    }
+    if (course.holes > 0) {
+      html += `🕳️ ${course.holes} ${t("holes")}`;
+    }
+    if (course.difficulty) {
+      html += ` &nbsp; ${getDifficultyBadge(course.difficulty)}`;
+    }
+    html += `</div>`;
+
+    if (course.description) {
+      html += `<div class="popup-description">${escapeHtml(course.description)}</div>`;
+    }
+    if (isOsm) {
+      html += `<div class="popup-source">${t("osmSource")}</div>`;
+    }
     if (course.udisc) {
       html += `<a class="popup-link" href="${escapeHtml(course.udisc)}" target="_blank" rel="noopener">${t("viewUdisc")}</a>`;
+    }
+    if (course.website && !course.udisc) {
+      html += `<a class="popup-link" href="${escapeHtml(course.website)}" target="_blank" rel="noopener">${t("visitWebsite")}</a>`;
     }
     if (course.distanceFromRoute !== undefined) {
       const label = course.isDetour ? t("detour") : t("fromRoute");
@@ -199,23 +217,33 @@
 
   // ---- Course card HTML ----
   function createCourseCard(course, index) {
+    const isOsm = course.source === "osm";
     const distLabel = course.isDetour ? ("🔄 " + t("detour")) : ("📍 " + t("fromRoute"));
     const distHtml = course.distanceFromRoute !== undefined
       ? `<span class="course-distance ${course.isDetour ? "distance-detour" : "distance-on-route"}">${distLabel}: ${course.distanceFromRoute.toFixed(1)} km</span>`
       : "";
 
+    const ratingHtml = isOsm ? "" : `<div class="course-rating">⭐ ${course.rating}</div>`;
+    const locationText = course.city ? escapeHtml(course.city) : escapeHtml(t("unknownCity"));
+    const holesText = course.holes > 0 ? `<span>🕳️ ${course.holes}h</span>` : "";
+    const difficultyText = course.difficulty ? `<span>${getDifficultyBadge(course.difficulty)}</span>` : "";
+    const descriptionHtml = course.description
+      ? `<div class="course-description">${escapeHtml(course.description)}</div>`
+      : "";
+    const osmBadge = isOsm ? `<span class="badge badge-osm">OSM</span>` : "";
+
     return `
-      <div class="course-card" data-index="${index}" data-lat="${course.lat}" data-lng="${course.lng}">
+      <div class="course-card${isOsm ? " course-card-osm" : ""}" data-index="${index}" data-lat="${course.lat}" data-lng="${course.lng}">
         <div class="course-card-header">
-          <div class="course-name">${escapeHtml(course.name)}</div>
-          <div class="course-rating">⭐ ${course.rating}</div>
+          <div class="course-name">${escapeHtml(course.name)} ${osmBadge}</div>
+          ${ratingHtml}
         </div>
         <div class="course-meta">
-          <span>📍 ${escapeHtml(course.city)}</span>
-          <span>🕳️ ${course.holes}h</span>
-          <span>${getDifficultyBadge(course.difficulty)}</span>
+          <span>📍 ${locationText}</span>
+          ${holesText}
+          ${difficultyText}
         </div>
-        <div class="course-description">${escapeHtml(course.description)}</div>
+        ${descriptionHtml}
         ${distHtml}
       </div>
     `;
@@ -274,10 +302,10 @@
     const difficulty = document.getElementById("filter-difficulty").value;
     const minHoles = parseInt(document.getElementById("filter-holes").value);
 
-    return COURSES.filter(c => {
+    return allCourses.filter(c => {
       if (search && !c.name.toLowerCase().includes(search) &&
           !c.city.toLowerCase().includes(search) &&
-          !c.region.toLowerCase().includes(search)) return false;
+          !(c.region && c.region.toLowerCase().includes(search))) return false;
       if (c.rating < minRating) return false;
       if (difficulty && c.difficulty !== difficulty) return false;
       if (c.holes < minHoles) return false;
@@ -385,8 +413,8 @@
       currentRoute = route;
 
       // Find courses near route
-      const nearRoute = Routing.findCoursesNearRoute(COURSES, route.coordinates, maxDist);
-      const detours = Routing.findDetourCourses(COURSES, route.coordinates, maxDist, detourDist, detourMinRating);
+      const nearRoute = Routing.findCoursesNearRoute(allCourses, route.coordinates, maxDist);
+      const detours = Routing.findDetourCourses(allCourses, route.coordinates, maxDist, detourDist, detourMinRating);
 
       // Render route on map
       renderRoute(route, fromGeo, toGeo, nearRoute, detours);
@@ -572,7 +600,21 @@
 
   // ---- Initialize ----
   updateUIText();
-  renderMarkers(COURSES);
-  renderCourseList(COURSES, "course-list");
+  renderMarkers(allCourses);
+  renderCourseList(allCourses, "course-list");
+
+  // Fetch additional courses from OpenStreetMap in the background
+  (async () => {
+    try {
+      const osmCourses = await OsmFetch.fetchCourses();
+      if (osmCourses.length > 0) {
+        allCourses = OsmFetch.mergeCourses(COURSES, osmCourses);
+        applyFilters();
+        console.log(`Loaded ${osmCourses.length} courses from OpenStreetMap (${allCourses.length - COURSES.length} new).`);
+      }
+    } catch (err) {
+      console.warn("Could not load OSM courses:", err.message);
+    }
+  })();
 
 })();

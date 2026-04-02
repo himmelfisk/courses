@@ -358,6 +358,19 @@ body {
 .badge-moderate { background: #dbeafe; color: #2563eb; }
 .badge-hard { background: #fed7aa; color: #c2410c; }
 .badge-very-hard { background: #fecaca; color: #dc2626; }
+.badge-osm { background: #e0e7ff; color: #4338ca; font-size: 0.6rem; padding: 1px 6px; vertical-align: middle; }
+
+/* ---- OSM-sourced course cards ---- */
+.course-card-osm {
+  border-left: 3px solid #818cf8;
+}
+
+/* ---- Popup source label ---- */
+.popup-source {
+  font-size: 0.72rem;
+  color: #6366f1;
+  margin-bottom: 6px;
+}
 
 /* ---- Route Planner ---- */
 .route-form {
