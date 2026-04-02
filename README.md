@@ -1,15 +1,16 @@
 # 🥏 Norway Disc Golf Explorer
 
-An interactive web application that shows all disc golf courses in Norway on a map, with route planning to find courses along your driving route.
+An interactive web application that shows disc golf courses in Norway on a map, with route planning to find courses along your driving route.
 
-![Map Overview](https://img.shields.io/badge/Courses-96-green) ![License](https://img.shields.io/badge/license-MIT-blue)
+![Map Overview](https://img.shields.io/badge/Curated_Courses-96-green) ![OSM](https://img.shields.io/badge/OSM_Courses-800+-blue) ![License](https://img.shields.io/badge/license-MIT-blue)
 
 🌐 **Live site:** [https://himmelfisk.github.io/courses/](https://himmelfisk.github.io/courses/)
 
 ## Features
 
-- **Interactive Map** — Browse 96 disc golf courses across Norway on an OpenStreetMap-powered map
-- **Course Details** — View ratings, number of holes, difficulty, and descriptions for each course
+- **Interactive Map** — Browse hundreds of disc golf courses across Norway on an OpenStreetMap-powered map
+- **Live Course Data** — Automatically fetches additional courses from OpenStreetMap to supplement the curated dataset
+- **Course Details** — View ratings, number of holes, difficulty, and descriptions for curated courses
 - **Search & Filter** — Find courses by name, city, region, minimum rating, difficulty, or hole count
 - **Route Planner** — Plan a driving route between any two Norwegian cities
 - **Courses Along Route** — Discover disc golf courses near your planned driving route
@@ -63,13 +64,20 @@ Then visit `http://localhost:8000`.
 
 ## Data Sources
 
-Course data is curated from multiple community sources:
+The app combines two types of course data:
 
+### Curated Courses (96 courses)
+Hand-curated courses with detailed info (ratings, descriptions, difficulty, hole count) from:
 - [UDisc](https://udisc.com/places/norway) — The world's largest disc golf platform
 - [PDGA Course Directory](https://www.pdga.com/course-directory) — Professional Disc Golf Association
 - [Disc Golf Scene](https://www.discgolfscene.com/courses/Norway) — Community course database
 
-> **Note:** UDisc does not offer a public API. Course data is manually curated and may not reflect the latest changes. Ratings are approximate. Contributions welcome!
+### OpenStreetMap Courses (800+ courses)
+The app automatically fetches additional courses from [OpenStreetMap](https://www.openstreetmap.org/) via the [Overpass API](https://overpass-api.de/) at runtime. These courses are tagged with `leisure=disc_golf_course` by the OSM community. OSM-sourced courses show a purple "OSM" badge and may have less detail (no ratings or descriptions).
+
+Norway has approximately **850 disc golf courses** — the curated dataset covers the most popular ones, while OSM data fills in the rest.
+
+> **Note:** UDisc does not offer a public API. The PDGA API developer program is currently closed. Curated course data is manually maintained and may not reflect the latest changes. Contributions welcome!
 
 ## Technology
 
@@ -82,13 +90,17 @@ Course data is curated from multiple community sources:
 ## Project Structure
 
 ```
-├── index.html          # Main HTML page
+├── index.html              # Main HTML page
 ├── css/
-│   └── style.css       # All styles
+│   └── style.css           # All styles
 ├── js/
-│   ├── courses.js      # Course dataset (96 courses)
-│   ├── routing.js      # Routing & geocoding utilities
-│   └── app.js          # Main application logic
+│   ├── courses.js          # Curated course dataset (96 courses)
+│   ├── osm-fetch.js        # OpenStreetMap Overpass API fetcher
+│   ├── i18n.js             # Internationalization (Norwegian/English)
+│   ├── routing.js          # Routing & geocoding utilities
+│   └── app.js              # Main application logic
+├── scripts/
+│   └── fetch-osm-courses.py  # Script to fetch OSM courses (for maintainers)
 └── README.md
 ```
 
