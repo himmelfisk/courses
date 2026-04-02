@@ -2,11 +2,11 @@
 
 An interactive web application that shows all disc golf courses in Norway on a map, with route planning to find courses along your driving route.
 
-![Map Overview](https://img.shields.io/badge/Courses-90%2B-green) ![License](https://img.shields.io/badge/license-MIT-blue)
+![Map Overview](https://img.shields.io/badge/Courses-96-green) ![License](https://img.shields.io/badge/license-MIT-blue)
 
 ## Features
 
-- **Interactive Map** — Browse 90+ disc golf courses across Norway on an OpenStreetMap-powered map
+- **Interactive Map** — Browse 96 disc golf courses across Norway on an OpenStreetMap-powered map
 - **Course Details** — View ratings, number of holes, difficulty, and descriptions for each course
 - **Search & Filter** — Find courses by name, city, region, minimum rating, difficulty, or hole count
 - **Route Planner** — Plan a driving route between any two Norwegian cities
@@ -84,7 +84,7 @@ Course data is curated from multiple community sources:
 ├── css/
 │   └── style.css       # All styles
 ├── js/
-│   ├── courses.js      # Course dataset (90+ courses)
+│   ├── courses.js      # Course dataset (96 courses)
 │   ├── routing.js      # Routing & geocoding utilities
 │   └── app.js          # Main application logic
 └── README.md
