@@ -24,6 +24,123 @@
   let routeMarkersLayer = null;
   let currentRoute = null;
 
+  // Stored coordinates from autocomplete selections
+  let storedFromCoords = null;
+  let storedToCoords = null;
+
+  // ---- i18n helper ----
+  const t = I18n.t;
+
+  function updateUIText() {
+    document.title = t("title");
+    document.getElementById("app-title").textContent = t("title");
+    document.getElementById("app-subtitle").textContent = t("subtitle");
+    document.getElementById("tab-btn-explore").textContent = t("tabExplore");
+    document.getElementById("tab-btn-route").textContent = t("tabRoute");
+    document.getElementById("search-input").placeholder = t("searchPlaceholder");
+    document.getElementById("label-rating").textContent = t("filterRating");
+    document.getElementById("label-difficulty").textContent = t("filterDifficulty");
+    document.getElementById("label-holes").textContent = t("filterHoles");
+    document.getElementById("opt-all-ratings").textContent = t("allRatings");
+    document.getElementById("opt-diff-all").textContent = t("all");
+    document.getElementById("opt-diff-easy").textContent = t("diffEasy");
+    document.getElementById("opt-diff-moderate").textContent = t("diffModerate");
+    document.getElementById("opt-diff-hard").textContent = t("diffHard");
+    document.getElementById("opt-diff-veryhard").textContent = t("diffVeryHard");
+    document.getElementById("opt-holes-all").textContent = t("all");
+    document.getElementById("courses-shown-label").textContent = t("coursesShown");
+    document.getElementById("label-from").textContent = t("from");
+    document.getElementById("label-to").textContent = t("to");
+    document.getElementById("route-from").placeholder = t("fromPlaceholder");
+    document.getElementById("route-to").placeholder = t("toPlaceholder");
+    document.getElementById("label-max-dist").textContent = t("maxDistRoute");
+    document.getElementById("label-max-detour").textContent = t("maxDetour");
+    document.getElementById("label-min-rating-detour").textContent = t("minRatingDetour");
+    document.getElementById("plan-route").textContent = t("planRoute");
+    document.getElementById("clear-route").textContent = t("clearRoute");
+    document.getElementById("heading-courses-along").textContent = "📍 " + t("coursesAlongRoute");
+    document.getElementById("heading-detours").textContent = "🔄 " + t("suggestedDetours");
+    document.getElementById("detour-hint-text").textContent = t("detourHint");
+    document.getElementById("loading-text").textContent = t("loading");
+
+    // Update the language toggle button label
+    const langBtn = document.getElementById("lang-toggle");
+    langBtn.textContent = I18n.getLang() === "no" ? "EN" : "NO";
+  }
+
+  // ---- Language toggle ----
+  document.getElementById("lang-toggle").addEventListener("click", () => {
+    const newLang = I18n.getLang() === "no" ? "en" : "no";
+    I18n.setLang(newLang);
+    updateUIText();
+    applyFilters(); // Re-render course list with new language
+  });
+
+  // ---- Mobile sidebar toggle ----
+  const sidebar = document.getElementById("sidebar");
+  const sidebarToggle = document.getElementById("sidebar-toggle");
+
+  function isMobile() {
+    return window.innerWidth < 769;
+  }
+
+  function openSidebar() {
+    sidebar.classList.add("open");
+    sidebarToggle.classList.add("hidden");
+  }
+
+  function closeSidebar() {
+    sidebar.classList.remove("open");
+    sidebarToggle.classList.remove("hidden");
+  }
+
+  sidebarToggle.addEventListener("click", () => {
+    openSidebar();
+  });
+
+  // Swipe-down to close on mobile
+  let touchStartY = 0;
+  let touchCurrentY = 0;
+  let isSwiping = false;
+
+  sidebar.addEventListener("touchstart", (e) => {
+    if (!isMobile()) return;
+    const touch = e.touches[0];
+    touchStartY = touch.clientY;
+    isSwiping = true;
+  }, { passive: true });
+
+  sidebar.addEventListener("touchmove", (e) => {
+    if (!isSwiping || !isMobile()) return;
+    touchCurrentY = e.touches[0].clientY;
+    const diff = touchCurrentY - touchStartY;
+    if (diff > 0) {
+      sidebar.style.transform = `translateY(${diff}px)`;
+    }
+  }, { passive: true });
+
+  sidebar.addEventListener("touchend", () => {
+    if (!isSwiping || !isMobile()) return;
+    isSwiping = false;
+    const diff = touchCurrentY - touchStartY;
+    sidebar.style.transform = "";
+    if (diff > 80) {
+      closeSidebar();
+    }
+  }, { passive: true });
+
+  // On desktop, sidebar is always visible
+  function handleResize() {
+    if (!isMobile()) {
+      sidebar.classList.remove("open");
+      sidebarToggle.classList.add("hidden");
+    } else if (!sidebar.classList.contains("open")) {
+      sidebarToggle.classList.remove("hidden");
+    }
+  }
+  window.addEventListener("resize", handleResize);
+  handleResize();
+
   // ---- Color helpers ----
   function getMarkerColor(rating) {
     if (rating >= 4.5) return "#059669"; // green - excellent
@@ -34,7 +151,7 @@
 
   function getDifficultyBadge(difficulty) {
     const cls = difficulty.toLowerCase().replace(" ", "-");
-    return `<span class="badge badge-${cls}">${difficulty}</span>`;
+    return `<span class="badge badge-${cls}">${escapeHtml(I18n.difficulty(difficulty))}</span>`;
   }
 
   function getStars(rating) {
@@ -63,26 +180,27 @@
       <div class="popup-title">${escapeHtml(course.name)}</div>
       <div class="popup-meta">
         📍 ${escapeHtml(course.city)}, ${escapeHtml(course.region)}<br>
-        ⭐ ${course.rating}/5 (${course.reviews} reviews)<br>
-        🕳️ ${course.holes} holes &nbsp; ${getDifficultyBadge(course.difficulty)}
+        ⭐ ${course.rating}/5 (${course.reviews} ${t("reviews")})<br>
+        🕳️ ${course.holes} ${t("holes")} &nbsp; ${getDifficultyBadge(course.difficulty)}
       </div>
       <div class="popup-description">${escapeHtml(course.description)}</div>
     `;
     if (course.udisc) {
-      html += `<a class="popup-link" href="${escapeHtml(course.udisc)}" target="_blank" rel="noopener">View on UDisc →</a>`;
+      html += `<a class="popup-link" href="${escapeHtml(course.udisc)}" target="_blank" rel="noopener">${t("viewUdisc")}</a>`;
     }
     if (course.distanceFromRoute !== undefined) {
-      const label = course.isDetour ? "Detour" : "From route";
+      const label = course.isDetour ? t("detour") : t("fromRoute");
       const cls = course.isDetour ? "distance-detour" : "distance-on-route";
-      html += `<br><span class="course-distance ${cls}">${label}: ${course.distanceFromRoute.toFixed(1)} km</span>`;
+      html += `<br><span class="course-distance ${cls}">${escapeHtml(label)}: ${course.distanceFromRoute.toFixed(1)} km</span>`;
     }
     return html;
   }
 
   // ---- Course card HTML ----
   function createCourseCard(course, index) {
+    const distLabel = course.isDetour ? ("🔄 " + t("detour")) : ("📍 " + t("fromRoute"));
     const distHtml = course.distanceFromRoute !== undefined
-      ? `<span class="course-distance ${course.isDetour ? "distance-detour" : "distance-on-route"}">${course.isDetour ? "🔄 Detour" : "📍 Route"}: ${course.distanceFromRoute.toFixed(1)} km</span>`
+      ? `<span class="course-distance ${course.isDetour ? "distance-detour" : "distance-on-route"}">${distLabel}: ${course.distanceFromRoute.toFixed(1)} km</span>`
       : "";
 
     return `
@@ -120,7 +238,7 @@
   function renderCourseList(courses, containerId) {
     const container = document.getElementById(containerId);
     if (courses.length === 0) {
-      container.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.85rem; padding: 12px;">No courses found matching your criteria.</p>';
+      container.innerHTML = `<p style="color: var(--text-secondary); font-size: 0.85rem; padding: 12px;">${escapeHtml(t("noCourses"))}</p>`;
     } else {
       container.innerHTML = courses.map((c, i) => createCourseCard(c, i)).join("");
     }
@@ -188,13 +306,63 @@
   document.getElementById("filter-difficulty").addEventListener("change", applyFilters);
   document.getElementById("filter-holes").addEventListener("change", applyFilters);
 
+  // ---- Autocomplete for route inputs ----
+  let autocompleteTimeout = null;
+
+  function setupAutocomplete(inputId, dropdownId, coordSetter) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+
+    input.addEventListener("input", () => {
+      coordSetter(null); // Clear stored coords when user types
+      clearTimeout(autocompleteTimeout);
+      const query = input.value.trim();
+      if (query.length < 2) {
+        dropdown.classList.remove("visible");
+        dropdown.innerHTML = "";
+        return;
+      }
+      autocompleteTimeout = setTimeout(async () => {
+        const results = await Routing.searchPlaces(query);
+        if (results.length === 0 || input.value.trim() !== query) {
+          dropdown.classList.remove("visible");
+          dropdown.innerHTML = "";
+          return;
+        }
+        dropdown.innerHTML = results.map((r, i) =>
+          `<div class="autocomplete-item" data-idx="${i}">${escapeHtml(r.displayName)}</div>`
+        ).join("");
+        dropdown.classList.add("visible");
+
+        dropdown.querySelectorAll(".autocomplete-item").forEach((item, idx) => {
+          item.addEventListener("click", () => {
+            input.value = results[idx].displayName.split(",")[0];
+            coordSetter({ lat: results[idx].lat, lng: results[idx].lng, displayName: results[idx].displayName });
+            dropdown.classList.remove("visible");
+            dropdown.innerHTML = "";
+          });
+        });
+      }, 300);
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+        dropdown.classList.remove("visible");
+      }
+    });
+  }
+
+  setupAutocomplete("route-from", "autocomplete-from", (coords) => { storedFromCoords = coords; });
+  setupAutocomplete("route-to", "autocomplete-to", (coords) => { storedToCoords = coords; });
+
   // ---- Route planning ----
   document.getElementById("plan-route").addEventListener("click", async () => {
     const fromName = document.getElementById("route-from").value.trim();
     const toName = document.getElementById("route-to").value.trim();
 
     if (!fromName || !toName) {
-      showError("Please enter both a start and end location.");
+      showError(t("enterBothLocations"));
       return;
     }
 
@@ -205,10 +373,10 @@
     showLoading(true);
 
     try {
-      // Geocode both locations
+      // Use stored coordinates from autocomplete if available, otherwise geocode
       const [fromGeo, toGeo] = await Promise.all([
-        Routing.geocode(fromName),
-        Routing.geocode(toName)
+        storedFromCoords ? Promise.resolve(storedFromCoords) : Routing.geocode(fromName),
+        storedToCoords ? Promise.resolve(storedToCoords) : Routing.geocode(toName)
       ]);
 
       // Get driving route
@@ -237,6 +405,8 @@
     clearRoute();
     document.getElementById("route-results").style.display = "none";
     document.getElementById("clear-route").style.display = "none";
+    storedFromCoords = null;
+    storedToCoords = null;
     applyFilters(); // Restore all markers
     map.setView([64.5, 12.0], 5);
   });
@@ -270,11 +440,11 @@
     });
 
     L.marker([from.lat, from.lng], { icon: startIcon })
-      .bindPopup(`<strong>Start:</strong> ${escapeHtml(from.displayName)}`)
+      .bindPopup(`<strong>${escapeHtml(t("start"))}:</strong> ${escapeHtml(from.displayName)}`)
       .addTo(routeMarkersLayer);
 
     L.marker([to.lat, to.lng], { icon: endIcon })
-      .bindPopup(`<strong>End:</strong> ${escapeHtml(to.displayName)}`)
+      .bindPopup(`<strong>${escapeHtml(t("end"))}:</strong> ${escapeHtml(to.displayName)}`)
       .addTo(routeMarkersLayer);
 
     // Show course markers (on-route + detours)
@@ -291,7 +461,7 @@
 
       // Draw detour line for detour courses
       if (course.isDetour) {
-        const detourLine = L.polyline(
+        L.polyline(
           [[course.lat, course.lng], findClosestRoutePoint(course, route.coordinates)],
           { color: "#d97706", weight: 2, opacity: 0.5, dashArray: "6 4" }
         ).addTo(routeMarkersLayer);
@@ -339,9 +509,9 @@
     // Route info
     document.getElementById("route-info").innerHTML = `
       <strong>🚗 ${escapeHtml(from.displayName.split(",")[0])} → ${escapeHtml(to.displayName.split(",")[0])}</strong><br>
-      📏 Distance: ${Routing.formatDistance(route.distance)}<br>
-      ⏱️ Driving time: ${Routing.formatDuration(route.duration)}<br>
-      🥏 ${nearCourses.length} courses along route, ${detourCourses.length} detour suggestions
+      📏 ${t("distance")}: ${Routing.formatDistance(route.distance)}<br>
+      ⏱️ ${t("drivingTime")}: ${Routing.formatDuration(route.duration)}<br>
+      🥏 ${nearCourses.length} ${t("coursesAlongRouteCount")}, ${detourCourses.length} ${t("detourSuggestions")}
     `;
 
     // Near-route courses
@@ -349,7 +519,7 @@
     if (nearCourses.length > 0) {
       routeCoursesEl.innerHTML = nearCourses.map((c, i) => createCourseCard(c, i)).join("");
     } else {
-      routeCoursesEl.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.85rem;">No courses found near this route. Try increasing the max distance.</p>';
+      routeCoursesEl.innerHTML = `<p style="color: var(--text-secondary); font-size: 0.85rem;">${escapeHtml(t("noCoursesRoute"))} ${escapeHtml(t("tryIncreaseDistance"))}</p>`;
     }
 
     // Detour courses
@@ -385,7 +555,6 @@
   }
 
   function showError(message) {
-    // Simple alert for now
     alert(message);
   }
 
@@ -396,6 +565,7 @@
   }
 
   // ---- Initialize ----
+  updateUIText();
   renderMarkers(COURSES);
   renderCourseList(COURSES, "course-list");
 

@@ -45,6 +45,37 @@ const Routing = (() => {
   }
 
   /**
+   * Search for places using Nominatim, returning up to 5 results.
+   * Used for autocomplete suggestions.
+   * @param {string} query - Search text
+   * @returns {Promise<Array<{displayName: string, lat: number, lng: number}>>}
+   */
+  async function searchPlaces(query) {
+    if (!query || query.length < 2) return [];
+
+    const params = new URLSearchParams({
+      q: query,
+      format: "json",
+      countrycodes: "no",
+      limit: "5",
+      addressdetails: "1"
+    });
+
+    const response = await fetch(`${NOMINATIM_BASE}/search?${params}`, {
+      headers: { "Accept-Language": "en" }
+    });
+
+    if (!response.ok) return [];
+
+    const results = await response.json();
+    return results.map(r => ({
+      displayName: r.display_name,
+      lat: parseFloat(r.lat),
+      lng: parseFloat(r.lon)
+    }));
+  }
+
+  /**
    * Get a driving route between two points using OSRM.
    * @param {Object} from - {lat, lng}
    * @param {Object} to - {lat, lng}
@@ -135,6 +166,41 @@ const Routing = (() => {
   }
 
   /**
+   * Find the index of the closest route coordinate to a given point.
+   * Used to determine projected position along the route.
+   * @param {Object} point - {lat, lng}
+   * @param {Array} routeCoords - Array of [lat, lng] pairs
+   * @returns {number} Index of closest coordinate
+   */
+  function closestRoutePointIndex(point, routeCoords) {
+    let minDist = Infinity;
+    let bestIdx = 0;
+    const step = Math.max(1, Math.floor(routeCoords.length / 500));
+
+    // Coarse pass
+    for (let i = 0; i < routeCoords.length; i += step) {
+      const d = haversine(point.lat, point.lng, routeCoords[i][0], routeCoords[i][1]);
+      if (d < minDist) {
+        minDist = d;
+        bestIdx = i;
+      }
+    }
+
+    // Fine pass around the best coarse index
+    const lo = Math.max(0, bestIdx - step);
+    const hi = Math.min(routeCoords.length - 1, bestIdx + step);
+    for (let i = lo; i <= hi; i++) {
+      const d = haversine(point.lat, point.lng, routeCoords[i][0], routeCoords[i][1]);
+      if (d < minDist) {
+        minDist = d;
+        bestIdx = i;
+      }
+    }
+
+    return bestIdx;
+  }
+
+  /**
    * Distance from a point to a line segment (Haversine-based).
    */
   function distanceToSegment(pLat, pLng, aLat, aLng, bLat, bLng) {
@@ -173,11 +239,11 @@ const Routing = (() => {
   }
 
   /**
-   * Find courses near a route.
+   * Find courses near a route, sorted by position along route (start → end).
    * @param {Array} courses - All courses
    * @param {Array} routeCoords - Route coordinates [[lat,lng], ...]
    * @param {number} maxDistKm - Maximum distance from route in km
-   * @returns {Array} Courses with distance info, sorted by distance
+   * @returns {Array} Courses with distance and route position info
    */
   function findCoursesNearRoute(courses, routeCoords, maxDistKm) {
     const results = [];
@@ -185,21 +251,22 @@ const Routing = (() => {
     for (const course of courses) {
       const dist = distanceToRoute(course, routeCoords);
       if (dist <= maxDistKm) {
-        results.push({ ...course, distanceFromRoute: dist });
+        const routePosition = closestRoutePointIndex(course, routeCoords);
+        results.push({ ...course, distanceFromRoute: dist, routePosition });
       }
     }
 
-    return results.sort((a, b) => a.distanceFromRoute - b.distanceFromRoute);
+    return results.sort((a, b) => a.routePosition - b.routePosition);
   }
 
   /**
-   * Find detour-worthy courses (great courses that are somewhat near the route).
+   * Find detour-worthy courses, sorted by position along route (start → end).
    * @param {Array} courses - All courses
    * @param {Array} routeCoords - Route coordinates
    * @param {number} maxDistKm - Max distance for "on route" (courses already found)
    * @param {number} detourMaxKm - Max detour distance
    * @param {number} minRating - Minimum rating for detour suggestion
-   * @returns {Array} Detour-worthy courses sorted by rating (desc)
+   * @returns {Array} Detour-worthy courses sorted by route position
    */
   function findDetourCourses(courses, routeCoords, maxDistKm, detourMaxKm, minRating) {
     const results = [];
@@ -210,11 +277,12 @@ const Routing = (() => {
       const dist = distanceToRoute(course, routeCoords);
       // Must be outside the "on route" distance but within detour distance
       if (dist > maxDistKm && dist <= detourMaxKm) {
-        results.push({ ...course, distanceFromRoute: dist, isDetour: true });
+        const routePosition = closestRoutePointIndex(course, routeCoords);
+        results.push({ ...course, distanceFromRoute: dist, isDetour: true, routePosition });
       }
     }
 
-    return results.sort((a, b) => b.rating - a.rating);
+    return results.sort((a, b) => a.routePosition - b.routePosition);
   }
 
   /**
@@ -237,6 +305,7 @@ const Routing = (() => {
 
   return {
     geocode,
+    searchPlaces,
     getRoute,
     findCoursesNearRoute,
     findDetourCourses,
