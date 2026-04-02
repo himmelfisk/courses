@@ -107,6 +107,7 @@
     if (!isMobile()) return;
     const touch = e.touches[0];
     touchStartY = touch.clientY;
+    touchCurrentY = touch.clientY;
     isSwiping = true;
   }, { passive: true });
 
@@ -392,6 +393,11 @@
 
       // Show results
       showRouteResults(route, fromGeo, toGeo, nearRoute, detours);
+
+      // Close sidebar on mobile so user can see the route on the map
+      if (isMobile()) {
+        closeSidebar();
+      }
 
     } catch (err) {
       showError(err.message);
